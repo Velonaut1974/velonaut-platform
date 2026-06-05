@@ -1,4 +1,5 @@
-<img src="Logo Github.png" width="120" align="right">
+<img src="Logo Github.png" width="100" align="right">
+
 # VELONAUT
 ### Maritime Compliance Infrastructure — From Operational Data to Verified Economic Assets
 
@@ -167,6 +168,76 @@ The roadmap moves toward a fully AI-assisted, multimodal platform — where flee
 The oceans do not need more reports. They need a system that makes it economically irrational to pollute and financially rewarding to comply.
 
 That is what we are building.
+
+---
+
+## The Cryptographic Ledger
+
+Every event in Velonaut is written to an append-only, hash-chained ledger — signed with Ed25519 and verifiable in full at any time.
+
+**Writing a block:**
+
+```python
+def add_entry(self, block_type, payload, reporting_year, signer_func=None):
+    # 1. Get previous block hash — chain link
+    prev_hash = cursor.fetchone()[1]
+
+    # 2. Build canonical body — deterministic, sort_keys=True
+    body_for_hash = {
+        "seq": last_seq + 1,
+        "institution_id": self.institution_id,
+        "block_type": block_type,
+        "reporting_year": reporting_year,
+        "prev_hash": prev_hash,
+        "payload": payload
+    }
+
+    # 3. SHA-256 over canonical JSON
+    block_hash = hashlib.sha256(
+        json.dumps(body_for_hash, sort_keys=True, separators=(',', ':')).encode('utf-8')
+    ).hexdigest()
+
+    # 4. Ed25519 signature — mandatory, no exceptions
+    if not signer_func:
+        raise ValueError("Cryptographic Signing Function Required")
+
+    signature_hex = signer_func(block_hash.encode('utf-8')).hex()
+```
+
+**Verifying the entire chain:**
+
+```python
+def verify_integrity(self):
+    # Re-calculates every block from Genesis to present.
+    # Verifies: Hash correctness · Chain links · Ed25519 signatures.
+    expected_prev_hash = "0" * 64
+
+    for block in self.__conn.execute(
+        "SELECT * FROM ledger_entries ORDER BY seq ASC"
+    ).fetchall():
+        # 1. Recalculate hash from stored fields
+        recalc_hash = hashlib.sha256(self._canonical_json(body)).hexdigest()
+        if recalc_hash != block.current_hash:
+            raise Exception(f"HASH_MISMATCH at SEQ {block.seq}")
+
+        # 2. Verify chain link
+        if block.prev_hash != expected_prev_hash:
+            raise Exception(f"CHAIN_BREAK at SEQ {block.seq}")
+
+        # 3. Verify Ed25519 signature
+        try:
+            verify_key.verify(block.current_hash.encode(), bytes.fromhex(block.signature))
+        except nacl.exceptions.BadSignatureError:
+            raise Exception(f"INVALID_SIGNATURE at SEQ {block.seq}")
+
+        expected_prev_hash = block.current_hash
+
+    return True
+```
+
+Any single-byte modification to any historical record breaks the chain at that point. The ledger cannot be silently edited. Ever.
+
+> **Production roadmap:** HSM/Vault key management · PostgreSQL row-level locking for multi-operator deployments · Key rotation blocks
 
 ---
 
