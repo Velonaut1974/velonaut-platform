@@ -181,4 +181,4 @@ That is what we are building.
 
 ---
 
-<sub>Velonautics · Hamburg · hello@velonautics.com · [velonautics.com](https://www.velonautics.com)</sub>
+<sub>Velonautics · Hamburg · hello@velonautics.com · 
