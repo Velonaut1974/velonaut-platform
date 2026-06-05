@@ -69,15 +69,14 @@ Raw data never reaches the ledger. Ever.
 Every input — whether a CSV Noon Report, a JSON fleet API, or a ZIP archive — passes through a deterministic pipeline before a single byte enters the system.
 
 ```python
-# Invariants enforced at every ingestion:
-#
-# · No floating-point arithmetic. Exclusively decimal.Decimal (precision 18,6).
-# · event_id = SHA256(canonical_json) → deterministic and auditable.
-# · Identical input → identical event_id → automatic duplicate rejection.
-# · Raw data never reaches the ledger. Only CDM events are committed.
-# · ZIP: max 100 files, max 50 MB uncompressed. Nested ZIPs rejected.
-# · Every ledger write: block type VOYAGE_EVENT.
-# · No direct database access. Service delegation only.
+### Enforced Ingestion Invariants
+
+| Protocol | Guardrail | Technical Implementation |
+| :--- | :--- | :--- |
+| **Precision Arithmetic** | Anti-Rounding Safeguard | Strictly forbids floats. Enforces `decimal.Decimal` (18,6) |
+| **Deterministic Replay** | Idempotency Engine | `event_id = SHA256(canonical_json)` |
+| **Duplicate Prevention** | Ledger Ingestion Firewall | Identical input hashes trigger automatic rejection |
+| **Archive Security** | Zip-Bomb Protection | Max 100 files / 50 MB uncompressed. Nested zip rejection |
 ```
 
 The result: a pipeline where *identical inputs always produce identical outputs* — a property we call **deterministic replay**. Any compliance result can be reconstructed from scratch, at any time, by any auditor.
