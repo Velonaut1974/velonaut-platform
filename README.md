@@ -1,4 +1,4 @@
-<img src="logo.png" width="120" align="right">
+<img src="Logo Github.png" width="120" align="right">
 # VELONAUT
 ### Maritime Compliance Infrastructure — From Operational Data to Verified Economic Assets
 
